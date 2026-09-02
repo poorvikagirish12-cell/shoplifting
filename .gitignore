@@ -1,0 +1,34 @@
+# Environments
+venv/
+env/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+
+# Media and Datasets
+backend/media/
+images/
+videos/
+labels/
+VLM-labels/
+annotated_images/
+annotated_videos/
+*.mp4
+*.avi
+*.mkv
+
+# Models
+*.pt
+
+# IDEs
+.vscode/
+.idea/
