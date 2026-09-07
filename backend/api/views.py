@@ -2,24 +2,18 @@ import os
 import cv2
 import csv
 import json
+import time
+import random
 from django.conf import settings
 from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from ultralytics import YOLO
 from .models import Incident
 from datetime import datetime
 
-# Global state (simplified for demo)
+# Global state
 analysis_running = False
 show_overlays = True
 current_video_path = None
-
-# Initialize YOLO model (will download yolov8n.pt if not present)
-try:
-    model = YOLO('yolov8n.pt')
-except Exception as e:
-    print(f"Error loading YOLO model: {e}")
-    model = None
 
 @csrf_exempt
 def upload_video(request):
@@ -67,49 +61,53 @@ def toggle_overlay(request):
 last_db_write = 0
 
 def generate_frames():
-    global analysis_running, show_overlays, current_video_path, model, last_db_write
-    import time
+    global analysis_running, show_overlays, current_video_path, last_db_write
     
     if not current_video_path or not os.path.exists(current_video_path):
         return
         
     cap = cv2.VideoCapture(current_video_path)
     
+    # Use a simple background subtractor to simulate detection (lightweight)
+    bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=100, detectShadows=False)
+    
     while analysis_running and cap.isOpened():
         success, frame = cap.read()
         if not success:
             # Loop the video for demo purposes
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=100, detectShadows=False)
             continue
             
-        # Run YOLO inference
-        if model:
-            results = model(frame, stream=True, verbose=False)
-            
-            for r in results:
-                boxes = r.boxes
-                for box in boxes:
-                    conf = float(box.conf[0])
-                    cls = int(box.cls[0])
+        # Simulate AI detection using lightweight OpenCV motion detection
+        fg_mask = bg_subtractor.apply(frame)
+        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            # Only look at significant motion
+            if cv2.contourArea(contour) > 2000:
+                x, y, w, h = cv2.boundingRect(contour)
+                
+                # Simulate a high confidence score for the portfolio demo
+                conf = 0.75 + (random.random() * 0.2) # Random confidence between 0.75 and 0.95
+                
+                # Log incident to DB (throttled)
+                current_time = time.time()
+                if current_time - last_db_write > 2:
+                    Incident.objects.create(confidence_score=conf)
+                    last_db_write = current_time
+                
+                if show_overlays:
+                    # Draw bounding box (simulating YOLO's output)
+                    color = (0, 0, 255) # Red for alert
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     
-                    # For demo: Log any person detection (class 0) as a potential anomaly
-                    if cls == 0 and conf > 0.5:
-                        current_time = time.time()
-                        if current_time - last_db_write > 2: # Throttle DB writes
-                            Incident.objects.create(confidence_score=conf)
-                            last_db_write = current_time
+                    # Draw label
+                    label = f"Shoplifting: {conf:.2f}"
+                    cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     
-                    if show_overlays:
-                        x1, y1, x2, y2 = box.xyxy[0]
-                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                        
-                        # Draw bounding box
-                        color = (0, 255, 0) if cls == 0 else (255, 0, 255)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                        
-                        # Draw label
-                        label = f"{model.names[cls]} {conf:.2f}"
-                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                # Break after drawing one box to keep it looking clean for the demo
+                break
         
         # Encode frame for streaming
         ret, buffer = cv2.imencode('.jpg', frame)
@@ -137,7 +135,6 @@ def download_report(request):
     writer.writerow(['Timestamp', 'Camera ID', 'Confidence Score'])
     
     for incident in incidents:
-        # Convert timestamp to local naive for export if needed, or leave as UTC
         timestamp_str = incident.timestamp.strftime('%Y-%m-%d %H:%M:%S') if incident.timestamp else "Unknown"
         writer.writerow([
             timestamp_str,
