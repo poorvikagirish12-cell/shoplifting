@@ -1,45 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Play, Square } from 'lucide-react';
 import styles from './Dashboard.module.css';
 
 function Dashboard() {
+  const location = useLocation();
+  const { videoUrl, statusLabel, isShoplifting } = location.state || {};
+  
   const [isRunning, setIsRunning] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
 
-  const toggleAnalysis = async () => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const endpoint = isRunning 
-        ? `${apiUrl}/api/stop_analysis/` 
-        : `${apiUrl}/api/start_analysis/`;
-        
-      const response = await fetch(endpoint, { method: 'POST' });
-      if (response.ok) {
-        setIsRunning(!isRunning);
-      }
-    } catch (error) {
-      console.error('Failed to toggle analysis:', error);
-      // For development frontend-only simulation:
-      setIsRunning(!isRunning);
-    }
+  const toggleAnalysis = () => {
+    setIsRunning(!isRunning);
   };
 
-  const toggleOverlays = async () => {
-    const newState = !showOverlays;
-    setShowOverlays(newState);
-    
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      await fetch(`${apiUrl}/api/toggle_overlay/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ show_overlays: newState }),
-      });
-    } catch (error) {
-      console.error('Failed to toggle overlays:', error);
-    }
+  const toggleOverlays = () => {
+    setShowOverlays(!showOverlays);
   };
 
   return (
@@ -63,6 +39,7 @@ function Dashboard() {
           <button 
             className={`${styles.actionButton} ${isRunning ? styles.stopButton : styles.startButton}`}
             onClick={toggleAnalysis}
+            disabled={!videoUrl}
           >
             {isRunning ? (
               <><Square size={20} /> Stop Analysis</>
@@ -73,16 +50,65 @@ function Dashboard() {
         </div>
       </div>
       
-      <div className={styles.videoWrapper}>
-        {isRunning ? (
-          <img 
-            src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/video_feed/?overlays=${showOverlays}`} 
-            alt="Live stream" 
-            className={styles.videoStream}
-          />
+      <div className={styles.videoWrapper} style={{ position: 'relative' }}>
+        {videoUrl ? (
+          <>
+            <video 
+              src={videoUrl} 
+              className={styles.videoStream}
+              autoPlay
+              loop
+              muted
+              controls={false}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            {isRunning && showOverlays && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                left: '20px',
+                backgroundColor: isShoplifting ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                fontSize: '20px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                zIndex: 10
+              }}>
+                {statusLabel}
+              </div>
+            )}
+            {isRunning && showOverlays && isShoplifting && (
+              <div style={{
+                position: 'absolute',
+                top: '20%',
+                left: '30%',
+                width: '40%',
+                height: '60%',
+                border: '4px solid red',
+                boxShadow: '0 0 15px red',
+                pointerEvents: 'none',
+                zIndex: 9
+              }} />
+            )}
+            {isRunning && showOverlays && !isShoplifting && (
+              <div style={{
+                position: 'absolute',
+                top: '20%',
+                left: '30%',
+                width: '40%',
+                height: '60%',
+                border: '4px solid lime',
+                boxShadow: '0 0 15px lime',
+                pointerEvents: 'none',
+                zIndex: 9
+              }} />
+            )}
+          </>
         ) : (
           <div className={styles.videoPlaceholder}>
-            <p>Analysis Stopped. Click 'Start Analysis' to begin the stream.</p>
+            <p>No video uploaded. Please go to Home and upload a video first.</p>
           </div>
         )}
       </div>

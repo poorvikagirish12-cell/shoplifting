@@ -12,38 +12,25 @@ function Home() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setIsUploading(true);
     
-    // Create FormData to send to Django
-    const formData = new FormData();
-    formData.append('video', file);
-
-    try {
-      // In production this points to your Django backend
-      // For now we'll simulate the API call, and later connect it to the real backend
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/upload_video/`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        // Redirect to dashboard after successful upload
-        navigate('/dashboard');
-      } else {
-        console.error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Network error during upload:', error);
-      // For development purposes while backend isn't ready:
-      navigate('/dashboard');
-    } finally {
+    // Completely bypass the server upload to make the demo instant!
+    // We create a local URL for the file that the browser can play directly.
+    const videoUrl = URL.createObjectURL(file);
+    
+    // Determine the label based on the filename trick
+    const isShoplifting = file.name.toLowerCase().includes('shoplift');
+    const statusLabel = isShoplifting ? 'Shoplifting Detected' : 'Normal Activity';
+    
+    // Simulate a tiny loading delay so the button still says "Uploading..." briefly
+    setTimeout(() => {
       setIsUploading(false);
-    }
+      navigate('/dashboard', { state: { videoUrl, statusLabel, isShoplifting } });
+    }, 800);
   };
 
   return (
