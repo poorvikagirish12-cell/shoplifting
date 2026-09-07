@@ -8,7 +8,8 @@ function Analytics() {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/download_report/');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/download_report/`);
       
       if (!response.ok) {
         throw new Error('Network response was not ok');

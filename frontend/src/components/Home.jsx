@@ -25,7 +25,8 @@ function Home() {
     try {
       // In production this points to your Django backend
       // For now we'll simulate the API call, and later connect it to the real backend
-      const response = await fetch('http://localhost:8000/api/upload_video/', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/upload_video/`, {
         method: 'POST',
         body: formData,
       });

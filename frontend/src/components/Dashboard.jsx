@@ -8,9 +8,10 @@ function Dashboard() {
 
   const toggleAnalysis = async () => {
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const endpoint = isRunning 
-        ? 'http://localhost:8000/api/stop_analysis/' 
-        : 'http://localhost:8000/api/start_analysis/';
+        ? `${apiUrl}/api/stop_analysis/` 
+        : `${apiUrl}/api/start_analysis/`;
         
       const response = await fetch(endpoint, { method: 'POST' });
       if (response.ok) {
@@ -28,7 +29,8 @@ function Dashboard() {
     setShowOverlays(newState);
     
     try {
-      await fetch('http://localhost:8000/api/toggle_overlay/', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      await fetch(`${apiUrl}/api/toggle_overlay/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +76,7 @@ function Dashboard() {
       <div className={styles.videoWrapper}>
         {isRunning ? (
           <img 
-            src={`http://localhost:8000/api/video_feed/?overlays=${showOverlays}`} 
+            src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/video_feed/?overlays=${showOverlays}`} 
             alt="Live stream" 
             className={styles.videoStream}
           />
