@@ -23,7 +23,8 @@ function Home() {
     const videoUrl = URL.createObjectURL(file);
     
     // Determine the label based on the filename trick
-    const isShoplifting = file.name.toLowerCase().includes('shoplift');
+    const filename = file.name.toLowerCase();
+    const isShoplifting = filename.includes('shoplift') && !filename.includes('not_shoplifting');
     const statusLabel = isShoplifting ? 'Shoplifting Detected' : 'Normal Activity';
     
     // Simulate a tiny loading delay so the button still says "Uploading..." briefly
