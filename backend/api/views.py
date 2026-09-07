@@ -71,13 +71,30 @@ def generate_frames():
     # Use a simple background subtractor to simulate detection (lightweight)
     bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=100, detectShadows=False)
     
+    empty_frame_count = 0
+    
     while analysis_running and cap.isOpened():
+        # Sleep slightly to prevent burning 100% CPU on Render's free tier
+        time.sleep(0.05)
+        
         success, frame = cap.read()
         if not success:
+            empty_frame_count += 1
+            if empty_frame_count > 10:
+                # Video completely failed to read, yield a blank error frame
+                import numpy as np
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(frame, "Error reading video file.", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                ret, buffer = cv2.imencode('.jpg', frame)
+                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                break
+                
             # Loop the video for demo purposes
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=100, detectShadows=False)
             continue
+            
+        empty_frame_count = 0
             
         # Simulate AI detection using lightweight OpenCV motion detection
         fg_mask = bg_subtractor.apply(frame)
