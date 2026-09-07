@@ -1,33 +1,21 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Play, Square, Loader2, CheckCircle, AlertOctagon } from 'lucide-react';
+import { Play, Square, AlertOctagon, CheckCircle } from 'lucide-react';
 import styles from './Dashboard.module.css';
 
 function Dashboard() {
   const location = useLocation();
   const { videoUrl, statusLabel, isShoplifting } = location.state || {};
   
-  // 'idle' | 'analyzing' | 'completed'
-  const [analysisState, setAnalysisState] = useState('idle');
-  const videoRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(true);
 
   const toggleAnalysis = () => {
-    if (analysisState === 'analyzing') {
-      setAnalysisState('idle');
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-    } else {
-      setAnalysisState('analyzing');
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-        videoRef.current.play();
-      }
-    }
+    setIsRunning(!isRunning);
   };
 
-  const handleVideoEnd = () => {
-    setAnalysisState('completed');
+  const toggleOverlays = () => {
+    setShowOverlays(!showOverlays);
   };
 
   return (
@@ -49,11 +37,11 @@ function Dashboard() {
           </div>
           
           <button 
-            className={`${styles.actionButton} ${analysisState === 'analyzing' ? styles.stopButton : styles.startButton}`}
+            className={`${styles.actionButton} ${isRunning ? styles.stopButton : styles.startButton}`}
             onClick={toggleAnalysis}
             disabled={!videoUrl}
           >
-            {analysisState === 'analyzing' ? (
+            {isRunning ? (
               <><Square size={20} /> Stop Analysis</>
             ) : (
               <><Play size={20} /> Start Analysis</>
@@ -66,34 +54,15 @@ function Dashboard() {
         {videoUrl ? (
           <>
             <video 
-              ref={videoRef}
               src={videoUrl} 
               className={styles.videoStream}
+              autoPlay={isRunning}
+              loop
               muted
-              onEnded={handleVideoEnd}
               controls={false}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
-            {analysisState === 'analyzing' && (
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                color: '#fff',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <Loader2 className={styles.spin} size={20} />
-                Scanning Video...
-              </div>
-            )}
-            
-            {/* Optional bounding boxes can be shown here if needed, but per user request, results are at bottom */}
+            {/* The top-left badge has been completely removed based on your drawing! */}
           </>
         ) : (
           <div className={styles.videoPlaceholder}>
@@ -102,52 +71,32 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Analysis Results Tab - Shows when video finishes */}
-      {analysisState === 'completed' && (
+      {/* NEW: The status message is now displayed at the bottom while running! */}
+      {isRunning && showOverlays && (
         <div style={{
           marginTop: '20px',
-          padding: '24px',
-          backgroundColor: '#1E293B',
+          padding: '16px 24px',
+          backgroundColor: isShoplifting ? '#FEF2F2' : '#F0FDF4',
           borderRadius: '12px',
-          borderLeft: `6px solid ${isShoplifting ? '#EF4444' : '#10B981'}`,
+          border: `2px solid ${isShoplifting ? '#EF4444' : '#10B981'}`,
           display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
         }}>
-          <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {isShoplifting ? <AlertOctagon color="#EF4444" /> : <CheckCircle color="#10B981" />}
-            Analysis Complete
-          </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ margin: '0 0 8px 0', color: '#94A3B8' }}>Detection Result:</p>
-              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: isShoplifting ? '#EF4444' : '#10B981' }}>
-                {statusLabel}
-              </p>
-            </div>
-            <div>
-              <p style={{ margin: '0 0 8px 0', color: '#94A3B8' }}>AI Confidence:</p>
-              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#fff' }}>
-                {isShoplifting ? '94.2%' : '98.5%'}
-              </p>
-            </div>
-            <div>
-              <button 
-                onClick={toggleAnalysis}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3B82F6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Analyze Again
-              </button>
-            </div>
-          </div>
+          {isShoplifting ? (
+            <AlertOctagon size={28} color="#EF4444" />
+          ) : (
+            <CheckCircle size={28} color="#10B981" />
+          )}
+          <span style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold', 
+            color: isShoplifting ? '#991B1B' : '#065F46' 
+          }}>
+            {statusLabel} (Confidence: {isShoplifting ? '94.2%' : '98.5%'})
+          </span>
         </div>
       )}
     </div>
