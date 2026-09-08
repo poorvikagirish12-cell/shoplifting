@@ -8,6 +8,7 @@ function Dashboard() {
   const { videoUrl, statusLabel, isShoplifting } = location.state || {};
   
   const [isRunning, setIsRunning] = useState(false);
+  const [hasFinished, setHasFinished] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
   const videoRef = useRef(null);
 
@@ -22,7 +23,21 @@ function Dashboard() {
   }, [isRunning]);
 
   const toggleAnalysis = () => {
-    setIsRunning(!isRunning);
+    if (!isRunning) {
+      // Reset video to start
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+      }
+      setHasFinished(false);
+      setIsRunning(true);
+    } else {
+      setIsRunning(false);
+    }
+  };
+
+  const handleVideoEnd = () => {
+    setIsRunning(false);
+    setHasFinished(true);
   };
 
   const toggleOverlays = () => {
@@ -54,6 +69,8 @@ function Dashboard() {
           >
             {isRunning ? (
               <><Square size={20} /> Stop Analysis</>
+            ) : hasFinished ? (
+              <><Play size={20} /> Re-Analyze</>
             ) : (
               <><Play size={20} /> Start Analysis</>
             )}
@@ -68,9 +85,9 @@ function Dashboard() {
               ref={videoRef}
               src={videoUrl} 
               className={styles.videoStream}
-              loop
               muted
               playsInline
+              onEnded={handleVideoEnd}
               controls={false}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -83,8 +100,8 @@ function Dashboard() {
         )}
       </div>
 
-      {/* NEW: The status message is now displayed at the bottom while running! */}
-      {isRunning && showOverlays && (
+      {/* The status message is now displayed at the bottom AFTER the video finishes! */}
+      {hasFinished && showOverlays && (
         <div style={{
           marginTop: '20px',
           padding: '16px 24px',
