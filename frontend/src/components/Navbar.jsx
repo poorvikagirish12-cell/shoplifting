@@ -16,7 +16,7 @@ function Navbar() {
       </div>
       <div className={styles.actions}>
         <a 
-          href="https://github.com" 
+          href="https://github.com/poorvikagirish12-cell/shoplifting" 
           target="_blank" 
           rel="noopener noreferrer" 
           className={styles.githubBtn}
