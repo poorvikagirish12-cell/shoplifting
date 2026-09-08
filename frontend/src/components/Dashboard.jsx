@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Play, Square, AlertOctagon, CheckCircle } from 'lucide-react';
 import styles from './Dashboard.module.css';
@@ -9,6 +9,17 @@ function Dashboard() {
   
   const [isRunning, setIsRunning] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isRunning) {
+        videoRef.current.play().catch(e => console.error("Video play failed:", e));
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isRunning]);
 
   const toggleAnalysis = () => {
     setIsRunning(!isRunning);
@@ -54,11 +65,12 @@ function Dashboard() {
         {videoUrl ? (
           <>
             <video 
+              ref={videoRef}
               src={videoUrl} 
               className={styles.videoStream}
-              autoPlay={isRunning}
               loop
               muted
+              playsInline
               controls={false}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
